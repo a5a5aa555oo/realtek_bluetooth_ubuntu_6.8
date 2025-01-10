@@ -8,6 +8,10 @@
 
 #include <linux/version.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+#define GET_HCIDEV_DEV(hdev) ((hdev)->dev.parent)
+#endif
+
 /* List of tlv type */
 enum {
 	INTEL_TLV_CNVI_TOP = 0x10,
