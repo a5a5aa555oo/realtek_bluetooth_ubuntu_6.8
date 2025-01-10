@@ -1316,6 +1316,7 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	if (!btrtl_dev->ic_info)
 		return;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 4)
 	switch (btrtl_dev->ic_info->lmp_subver) {
 	case RTL_ROM_LMP_8703B:
 		/* 8723CS reports two pages for local ext features,
@@ -1328,6 +1329,7 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	default:
 		break;
 	}
+#endif
 }
 EXPORT_SYMBOL_GPL(btrtl_set_quirks);
 

@@ -6,7 +6,6 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
 #include <linux/regmap.h>

@@ -802,6 +802,7 @@ static const struct dmi_system_id btusb_needs_reset_resume_table[] = {
 	{}
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 struct qca_dump_info {
 	/* fields for dump collection */
 	u16 id_vendor;
@@ -811,6 +812,7 @@ struct qca_dump_info {
 	u32 ram_dump_size;
 	u16 ram_dump_seqno;
 };
+#endif
 
 #define BTUSB_MAX_ISOC_FRAMES	10
 
@@ -831,7 +833,9 @@ struct qca_dump_info {
 #define BTUSB_WAKEUP_AUTOSUSPEND	14
 #define BTUSB_USE_ALT3_FOR_WBS	15
 #define BTUSB_ALT6_CONTINUOUS_TX	16
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define BTUSB_HW_SSR_ACTIVE	17
+#endif
 
 struct btusb_data {
 	struct hci_dev       *hdev;
@@ -899,7 +903,9 @@ struct btusb_data {
 	int oob_wake_irq;   /* irq for out-of-band wake-on-bt */
 	unsigned cmd_timeout_cnt;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct qca_dump_info qca_dump;
+#endif
 };
 
 static void btusb_reset(struct hci_dev *hdev)
@@ -1063,10 +1069,12 @@ static void btusb_qca_cmd_timeout(struct hci_dev *hdev)
 	struct btusb_data *data = hci_get_drvdata(hdev);
 	struct gpio_desc *reset_gpio = data->reset_gpio;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	if (test_bit(BTUSB_HW_SSR_ACTIVE, &data->flags)) {
 		bt_dev_info(hdev, "Ramdump in progress, defer cmd_timeout");
 		return;
 	}
+#endif
 
 	if (++data->cmd_timeout_cnt < 5)
 		return;
@@ -3475,6 +3483,7 @@ static int btusb_set_bdaddr_wcn6855(struct hci_dev *hdev,
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define QCA_MEMDUMP_ACL_HANDLE 0x2EDD
 #define QCA_MEMDUMP_SIZE_MAX  0x100000
 #define QCA_MEMDUMP_VSE_CLASS 0x01
@@ -3668,6 +3677,7 @@ static int btusb_recv_evt_qca(struct hci_dev *hdev, struct sk_buff *skb)
 		return 0;
 	return hci_recv_frame(hdev, skb);
 }
+#endif
 
 
 #define QCA_DFU_PACKET_LEN	4096
@@ -4004,8 +4014,10 @@ static int btusb_setup_qca(struct hci_dev *hdev)
 	if (err < 0)
 		return err;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	btdata->qca_dump.fw_version = le32_to_cpu(ver.patch_version);
 	btdata->qca_dump.controller_id = le32_to_cpu(ver.rom_version);
+#endif
 
 	if (!(status & QCA_SYSCFG_UPDATED)) {
 		err = btusb_setup_qca_load_nvm(hdev, &ver, info);
@@ -4504,11 +4516,13 @@ static int btusb_probe(struct usb_interface *intf,
 	}
 
 	if (id->driver_info & BTUSB_QCA_WCN6855) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		data->qca_dump.id_vendor = id->idVendor;
 		data->qca_dump.id_product = id->idProduct;
 		data->recv_event = btusb_recv_evt_qca;
 		data->recv_acl = btusb_recv_acl_qca;
 		hci_devcd_register(hdev, btusb_coredump_qca, btusb_dump_hdr_qca, NULL);
+#endif
 		data->setup_on_usb = btusb_setup_qca;
 		hdev->shutdown = btusb_shutdown_qca;
 		hdev->set_bdaddr = btusb_set_bdaddr_wcn6855;
@@ -4850,6 +4864,7 @@ done:
 }
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #ifdef CONFIG_DEV_COREDUMP
 static void btusb_coredump(struct device *dev)
 {
@@ -4859,6 +4874,7 @@ static void btusb_coredump(struct device *dev)
 	if (hdev->dump.coredump)
 		hdev->dump.coredump(hdev);
 }
+#endif
 #endif
 
 static struct usb_driver btusb_driver = {
@@ -4873,12 +4889,15 @@ static struct usb_driver btusb_driver = {
 	.supports_autosuspend = 1,
 	.disable_hub_initiated_lpm = 1,
 
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #ifdef CONFIG_DEV_COREDUMP
 	.drvwrap = {
 		.driver = {
 			.coredump = btusb_coredump,
 		},
 	},
+#endif
 #endif
 };
 
