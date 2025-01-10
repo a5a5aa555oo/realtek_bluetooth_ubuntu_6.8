@@ -9,7 +9,6 @@
 #include <linux/firmware.h>
 #include <asm/unaligned.h>
 #include <linux/usb.h>
-#include <linux/version.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
@@ -933,7 +932,6 @@ out:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btrtl_coredump(struct hci_dev *hdev)
 {
 	static const u8 param[] = { 0x00, 0x00 };
@@ -969,7 +967,6 @@ static void btrtl_register_devcoredump_support(struct hci_dev *hdev)
 	hci_devcd_register(hdev, btrtl_coredump, btrtl_dmp_hdr, NULL);
 
 }
-#endif
 
 void btrtl_set_driver_name(struct hci_dev *hdev, const char *driver_name)
 {
@@ -1255,9 +1252,7 @@ int btrtl_download_firmware(struct hci_dev *hdev,
 	}
 
 done:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	btrtl_register_devcoredump_support(hdev);
-#endif
 
 	return err;
 }
@@ -1289,11 +1284,11 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 		if (btrtl_dev->project_id == CHIP_ID_8852C)
 			btrealtek_set_flag(hdev, REALTEK_ALT6_CONTINUOUS_TX_CHIP);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 		if (btrtl_dev->project_id == CHIP_ID_8852A ||
+		    btrtl_dev->project_id == CHIP_ID_8852B ||
 		    btrtl_dev->project_id == CHIP_ID_8852C)
 			set_bit(HCI_QUIRK_USE_MSFT_EXT_ADDRESS_FILTER, &hdev->quirks);
-#endif
+
 		hci_set_aosp_capable(hdev);
 		break;
 	default:
@@ -1305,7 +1300,6 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	if (!btrtl_dev->ic_info)
 		return;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	switch (btrtl_dev->ic_info->lmp_subver) {
 	case RTL_ROM_LMP_8703B:
 		/* 8723CS reports two pages for local ext features,
@@ -1318,7 +1312,6 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	default:
 		break;
 	}
-#endif
 }
 EXPORT_SYMBOL_GPL(btrtl_set_quirks);
 

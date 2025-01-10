@@ -17,7 +17,6 @@
 #include <linux/suspend.h>
 #include <linux/gpio/consumer.h>
 #include <linux/debugfs.h>
-#include <linux/version.h>
 #include <asm/unaligned.h>
 
 #include <net/bluetooth/bluetooth.h>
@@ -478,7 +477,6 @@ static const struct usb_device_id quirks_table[] = {
 	{ USB_DEVICE(0x8087, 0x0033), .driver_info = BTUSB_INTEL_COMBINED },
 	{ USB_DEVICE(0x8087, 0x0035), .driver_info = BTUSB_INTEL_COMBINED },
 	{ USB_DEVICE(0x8087, 0x0036), .driver_info = BTUSB_INTEL_COMBINED },
-	{ USB_DEVICE(0x8087, 0x0038), .driver_info = BTUSB_INTEL_COMBINED },
 	{ USB_DEVICE(0x8087, 0x07da), .driver_info = BTUSB_CSR },
 	{ USB_DEVICE(0x8087, 0x07dc), .driver_info = BTUSB_INTEL_COMBINED |
 						     BTUSB_INTEL_NO_WBS_SUPPORT |
@@ -539,9 +537,13 @@ static const struct usb_device_id quirks_table[] = {
 						     BTUSB_WIDEBAND_SPEECH },
 	{ USB_DEVICE(0x13d3, 0x3592), .driver_info = BTUSB_REALTEK |
 						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x0489, 0xe122), .driver_info = BTUSB_REALTEK |
+						     BTUSB_WIDEBAND_SPEECH },
 
 	/* Realtek 8852BE Bluetooth devices */
 	{ USB_DEVICE(0x0cb8, 0xc559), .driver_info = BTUSB_REALTEK |
+						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x0bda, 0x4853), .driver_info = BTUSB_REALTEK |
 						     BTUSB_WIDEBAND_SPEECH },
 	{ USB_DEVICE(0x0bda, 0x887b), .driver_info = BTUSB_REALTEK |
 						     BTUSB_WIDEBAND_SPEECH },
@@ -550,6 +552,12 @@ static const struct usb_device_id quirks_table[] = {
 	{ USB_DEVICE(0x13d3, 0x3570), .driver_info = BTUSB_REALTEK |
 						     BTUSB_WIDEBAND_SPEECH },
 	{ USB_DEVICE(0x13d3, 0x3571), .driver_info = BTUSB_REALTEK |
+						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x13d3, 0x3591), .driver_info = BTUSB_REALTEK |
+						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x0489, 0xe123), .driver_info = BTUSB_REALTEK |
+						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x0489, 0xe125), .driver_info = BTUSB_REALTEK |
 						     BTUSB_WIDEBAND_SPEECH },
 
 	/* Realtek Bluetooth devices */
@@ -612,6 +620,9 @@ static const struct usb_device_id quirks_table[] = {
 	{ USB_DEVICE(0x0e8d, 0x0608), .driver_info = BTUSB_MEDIATEK |
 						     BTUSB_WIDEBAND_SPEECH |
 						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3606), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
 
 	/* MediaTek MT7922A Bluetooth devices */
 	{ USB_DEVICE(0x0489, 0xe0d8), .driver_info = BTUSB_MEDIATEK |
@@ -651,6 +662,34 @@ static const struct usb_device_id quirks_table[] = {
 						     BTUSB_WIDEBAND_SPEECH |
 						     BTUSB_VALID_LE_STATES },
 	{ USB_DEVICE(0x35f5, 0x7922), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3614), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3615), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x04ca, 0x38e4), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3605), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3607), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+
+	/* Additional MediaTek MT7925 Bluetooth devices */
+	{ USB_DEVICE(0x0489, 0xe111), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH },
+	{ USB_DEVICE(0x0489, 0xe113), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3602), .driver_info = BTUSB_MEDIATEK |
+						     BTUSB_WIDEBAND_SPEECH |
+						     BTUSB_VALID_LE_STATES },
+	{ USB_DEVICE(0x13d3, 0x3603), .driver_info = BTUSB_MEDIATEK |
 						     BTUSB_WIDEBAND_SPEECH |
 						     BTUSB_VALID_LE_STATES },
 
@@ -853,6 +892,10 @@ struct btusb_data {
 
 	int (*setup_on_usb)(struct hci_dev *hdev);
 
+	int (*suspend)(struct hci_dev *hdev);
+	int (*resume)(struct hci_dev *hdev);
+	int (*disconnect)(struct hci_dev *hdev);
+
 	int oob_wake_irq;   /* irq for out-of-band wake-on-bt */
 	unsigned cmd_timeout_cnt;
 
@@ -861,7 +904,6 @@ struct btusb_data {
 
 static void btusb_reset(struct hci_dev *hdev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 	struct btusb_data *data;
 	int err;
 
@@ -880,7 +922,6 @@ static void btusb_reset(struct hci_dev *hdev)
 
 	bt_dev_err(hdev, "Resetting usb device.");
 	usb_queue_reset_device(data->intf);
-#endif
 }
 
 static void btusb_intel_cmd_timeout(struct hci_dev *hdev)
@@ -945,7 +986,6 @@ struct rtk_dev_coredump_hdr {
 static inline void btusb_rtl_alloc_devcoredump(struct hci_dev *hdev,
 		struct rtk_dev_coredump_hdr *hdr, u8 *buf, u32 len)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct sk_buff *skb;
 
 	skb = alloc_skb(len + sizeof(*hdr), GFP_ATOMIC);
@@ -963,12 +1003,10 @@ static inline void btusb_rtl_alloc_devcoredump(struct hci_dev *hdev,
 		bt_dev_err(hdev, "RTL: Failed to generate devcoredump");
 		kfree_skb(skb);
 	}
-#endif
 }
 
 static void btusb_rtl_cmd_timeout(struct hci_dev *hdev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btusb_data *data = hci_get_drvdata(hdev);
 	struct gpio_desc *reset_gpio = data->reset_gpio;
 	struct rtk_dev_coredump_hdr hdr = {
@@ -1000,7 +1038,6 @@ static void btusb_rtl_cmd_timeout(struct hci_dev *hdev)
 	gpiod_set_value_cansleep(reset_gpio, 1);
 	msleep(200);
 	gpiod_set_value_cansleep(reset_gpio, 0);
-#endif
 }
 
 static void btusb_rtl_hw_error(struct hci_dev *hdev, u8 code)
@@ -1335,9 +1372,7 @@ static void btusb_intr_complete(struct urb *urb)
 			bt_dev_err(hdev, "urb %p failed to resubmit (%d)",
 				   urb, -err);
 		if (err != -EPERM)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 			hci_cmd_sync_cancel(hdev, -err);
-#endif
 		usb_unanchor_urb(urb);
 	}
 }
@@ -1359,7 +1394,15 @@ static int btusb_submit_intr_urb(struct hci_dev *hdev, gfp_t mem_flags)
 	if (!urb)
 		return -ENOMEM;
 
-	size = le16_to_cpu(data->intr_ep->wMaxPacketSize);
+	if (le16_to_cpu(data->udev->descriptor.idVendor)  == 0x0a12 &&
+	    le16_to_cpu(data->udev->descriptor.idProduct) == 0x0001)
+		/* Fake CSR devices don't seem to support sort-transter */
+		size = le16_to_cpu(data->intr_ep->wMaxPacketSize);
+	else
+		/* Use maximum HCI Event size so the USB stack handles
+		 * ZPL/short-transfer automatically.
+		 */
+		size = HCI_MAX_EVENT_SIZE;
 
 	buf = kmalloc(size, mem_flags);
 	if (!buf) {
@@ -1382,9 +1425,7 @@ static int btusb_submit_intr_urb(struct hci_dev *hdev, gfp_t mem_flags)
 			bt_dev_err(hdev, "urb %p submission failed (%d)",
 				   urb, -err);
 		if (err != -EPERM)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 			hci_cmd_sync_cancel(hdev, -err);
-#endif
 		usb_unanchor_urb(urb);
 	}
 
@@ -1772,10 +1813,8 @@ static void btusb_tx_complete(struct urb *urb)
 	if (!urb->status) {
 		hdev->stat.byte_tx += urb->transfer_buffer_length;
 	} else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 		if (hci_skb_pkt_type(skb) == HCI_COMMAND_PKT)
 			hci_cmd_sync_cancel(hdev, -urb->status);
-#endif
 		hdev->stat.err_tx++;
 	}
 
@@ -2415,12 +2454,8 @@ static int btusb_setup_csr(struct hci_dev *hdev)
 		 * without these the controller will lock up.
 		 */
 		set_bit(HCI_QUIRK_BROKEN_STORED_LINK_KEY, &hdev->quirks);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0)
 		set_bit(HCI_QUIRK_BROKEN_ERR_DATA_REPORTING, &hdev->quirks);
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 		set_bit(HCI_QUIRK_BROKEN_FILTER_CLEAR_ALL, &hdev->quirks);
-#endif
 		set_bit(HCI_QUIRK_NO_SUSPEND_NOTIFIER, &hdev->quirks);
 
 		/* Clear the reset quirk since this is not an actual
@@ -3288,7 +3323,6 @@ static int btusb_recv_acl_mtk(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct btusb_data *data = hci_get_drvdata(hdev);
 	u16 handle = le16_to_cpu(hci_acl_hdr(skb)->handle);
-	struct sk_buff *skb_cd;
 
 	switch (handle) {
 	case 0xfc6f:		/* Firmware dump from device */
@@ -3301,9 +3335,12 @@ static int btusb_recv_acl_mtk(struct hci_dev *hdev, struct sk_buff *skb)
 		 * for backward compatibility, so we have to clone the packet
 		 * extraly for the in-kernel coredump support.
 		 */
-		skb_cd = skb_clone(skb, GFP_ATOMIC);
-		if (skb_cd)
-			btmtk_process_coredump(hdev, skb_cd);
+		if (IS_ENABLED(CONFIG_DEV_COREDUMP)) {
+			struct sk_buff *skb_cd = skb_clone(skb, GFP_ATOMIC);
+
+			if (skb_cd)
+				btmtk_process_coredump(hdev, skb_cd);
+		}
 
 		fallthrough;
 	case 0x05ff:		/* Firmware debug logging 1 */
@@ -3405,7 +3442,6 @@ static int btusb_set_bdaddr_ath3012(struct hci_dev *hdev,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int btusb_set_bdaddr_wcn6855(struct hci_dev *hdev,
 				const bdaddr_t *bdaddr)
 {
@@ -3477,22 +3513,19 @@ static void btusb_dump_hdr_qca(struct hci_dev *hdev, struct sk_buff *skb)
 
 static void btusb_coredump_qca(struct hci_dev *hdev)
 {
+	int err;
 	static const u8 param[] = { 0x26 };
-	struct sk_buff *skb;
 
-	skb = __hci_cmd_sync(hdev, 0xfc0c, 1, param, HCI_CMD_TIMEOUT);
-	if (IS_ERR(skb))
-		bt_dev_err(hdev, "%s: triggle crash failed (%ld)", __func__, PTR_ERR(skb));
-	kfree_skb(skb);
+	err = __hci_cmd_send(hdev, 0xfc0c, 1, param);
+	if (err < 0)
+		bt_dev_err(hdev, "%s: triggle crash failed (%d)", __func__, err);
 }
-#endif
 
 /*
  * ==0: not a dump pkt.
  * < 0: fails to handle a dump pkt
  * > 0: otherwise.
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int handle_dump_pkt_qca(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	int ret = 1;
@@ -3609,9 +3642,7 @@ out:
 		kfree_skb(skb);
 	return ret;
 }
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int btusb_recv_acl_qca(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	if (handle_dump_pkt_qca(hdev, skb))
@@ -3625,7 +3656,6 @@ static int btusb_recv_evt_qca(struct hci_dev *hdev, struct sk_buff *skb)
 		return 0;
 	return hci_recv_frame(hdev, skb);
 }
-#endif
 
 
 #define QCA_DFU_PACKET_LEN	4096
@@ -3981,9 +4011,7 @@ static int btusb_setup_qca(struct hci_dev *hdev)
 	/* Mark HCI_OP_ENHANCED_SETUP_SYNC_CONN as broken as it doesn't seem to
 	 * work with the likes of HSP/HFP mSBC.
 	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
 	set_bit(HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN, &hdev->quirks);
-#endif
 
 	return 0;
 }
@@ -4144,19 +4172,11 @@ static void btusb_check_needs_reset_resume(struct usb_interface *intf)
 		interface_to_usbdev(intf)->quirks |= USB_QUIRK_RESET_RESUME;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 static bool btusb_wakeup(struct hci_dev *hdev)
-#else
-static bool btusb_prevent_wakeup(struct hci_dev *hdev)
-#endif
 {
 	struct btusb_data *data = hci_get_drvdata(hdev);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	return device_may_wakeup(&data->udev->dev);
-#else
-	return !device_may_wakeup(&data->udev->dev);
-#endif
 }
 
 static int btusb_shutdown_qca(struct hci_dev *hdev)
@@ -4342,11 +4362,6 @@ static int btusb_probe(struct usb_interface *intf,
 	hdev->bus = HCI_USB;
 	hci_set_drvdata(hdev, data);
 
-	if (id->driver_info & BTUSB_AMP)
-		hdev->dev_type = HCI_AMP;
-	else
-		hdev->dev_type = HCI_PRIMARY;
-
 	data->hdev = hdev;
 
 	SET_HCIDEV_DEV(hdev, &intf->dev);
@@ -4365,11 +4380,7 @@ static int btusb_probe(struct usb_interface *intf,
 	hdev->flush  = btusb_flush;
 	hdev->send   = btusb_send_frame;
 	hdev->notify = btusb_notify;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	hdev->wakeup = btusb_wakeup;
-#else
-	hdev->prevent_wake = btusb_prevent_wakeup;
-#endif
 
 #ifdef CONFIG_PM
 	err = btusb_config_oob_wake(hdev);
@@ -4443,9 +4454,7 @@ static int btusb_probe(struct usb_interface *intf,
 		hdev->manufacturer = 70;
 		hdev->cmd_timeout = btmtk_reset_sync;
 		hdev->set_bdaddr = btmtk_set_bdaddr;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
 		set_bit(HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN, &hdev->quirks);
-#endif
 		set_bit(HCI_QUIRK_NON_PERSISTENT_SETUP, &hdev->quirks);
 		data->recv_acl = btusb_recv_acl_mtk;
 	}
@@ -4476,7 +4485,6 @@ static int btusb_probe(struct usb_interface *intf,
 		btusb_check_needs_reset_resume(intf);
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	if (id->driver_info & BTUSB_QCA_WCN6855) {
 		data->qca_dump.id_vendor = id->idVendor;
 		data->qca_dump.id_product = id->idProduct;
@@ -4490,7 +4498,6 @@ static int btusb_probe(struct usb_interface *intf,
 		set_bit(HCI_QUIRK_SIMULTANEOUS_DISCOVERY, &hdev->quirks);
 		hci_set_msft_opcode(hdev, 0xFD70);
 	}
-#endif
 
 	if (id->driver_info & BTUSB_AMP) {
 		/* AMP controllers do not support SCO packets */
@@ -4516,16 +4523,13 @@ static int btusb_probe(struct usb_interface *intf,
 
 	if (id->driver_info & BTUSB_ACTIONS_SEMI) {
 		/* Support is advertised, but not implemented */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 		set_bit(HCI_QUIRK_BROKEN_ERR_DATA_REPORTING, &hdev->quirks);
-#endif
 		set_bit(HCI_QUIRK_BROKEN_READ_TRANSMIT_POWER, &hdev->quirks);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		set_bit(HCI_QUIRK_BROKEN_SET_RPA_TIMEOUT, &hdev->quirks);
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 		set_bit(HCI_QUIRK_BROKEN_EXT_SCAN, &hdev->quirks);
-#endif
+		set_bit(HCI_QUIRK_BROKEN_READ_ENC_KEY_SIZE, &hdev->quirks);
+		set_bit(HCI_QUIRK_BROKEN_EXT_CREATE_CONN, &hdev->quirks);
+		set_bit(HCI_QUIRK_BROKEN_WRITE_AUTH_PAYLOAD_TIMEOUT, &hdev->quirks);
 	}
 
 	if (!reset)
@@ -4643,6 +4647,9 @@ static void btusb_disconnect(struct usb_interface *intf)
 	if (data->diag)
 		usb_set_intfdata(data->diag, NULL);
 
+	if (data->disconnect)
+		data->disconnect(hdev);
+
 	hci_unregister_dev(hdev);
 
 	if (intf == data->intf) {
@@ -4690,6 +4697,9 @@ static int btusb_suspend(struct usb_interface *intf, pm_message_t message)
 	}
 
 	cancel_work_sync(&data->work);
+
+	if (data->suspend)
+		data->suspend(data->hdev);
 
 	btusb_stop_traffic(data);
 	usb_kill_anchored_urbs(&data->tx_anchor);
@@ -4794,6 +4804,9 @@ static int btusb_resume(struct usb_interface *intf)
 			btusb_submit_isoc_urb(hdev, GFP_NOIO);
 	}
 
+	if (data->resume)
+		data->resume(hdev);
+
 	spin_lock_irq(&data->txlock);
 	play_deferred(data);
 	clear_bit(BTUSB_SUSPENDING, &data->flags);
@@ -4816,13 +4829,11 @@ done:
 #ifdef CONFIG_DEV_COREDUMP
 static void btusb_coredump(struct device *dev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btusb_data *data = dev_get_drvdata(dev);
 	struct hci_dev *hdev = data->hdev;
 
 	if (hdev->dump.coredump)
 		hdev->dump.coredump(hdev);
-#endif
 }
 #endif
 
