@@ -26,10 +26,12 @@ clean:
 install:
 	strip -g *.ko
 	@install -Dvm 644 -t $(MODDIR) *.ko
+	@install -Dvm 644 -t /etc/modprobe.d blacklist-btusb.conf
 	depmod -a $(KVER)
 	
 uninstall:
 	@rm -rvf $(MODDIR)
+	@rm -vf /etc/modprobe.d/blacklist-btusb.conf
 	@rmdir --ignore-fail-on-non-empty /lib/modules/$(KVER)/extra || true
 	depmod -a $(KVER)
 
