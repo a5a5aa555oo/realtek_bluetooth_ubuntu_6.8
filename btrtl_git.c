@@ -5,7 +5,6 @@
  *  Copyright (C) 2015 Endless Mobile, Inc.
  */
 
-#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
 #include <asm/unaligned.h>
@@ -33,7 +32,9 @@
 #define RTL_ROM_LMP_8851B	0x8851
 #define RTL_CONFIG_MAGIC	0x8723ab55
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define RTL_VSC_OP_COREDUMP	0xfcff
+#endif
 
 #define IC_MATCH_FL_LMPSUBV	(1 << 0)
 #define IC_MATCH_FL_HCIREV	(1 << 1)
@@ -617,7 +618,9 @@ static int rtlbt_parse_firmware(struct hci_dev *hdev,
 				unsigned char **_buf)
 {
 	static const u8 extension_sig[] = { 0x51, 0x04, 0xfd, 0x77 };
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btrealtek_data *coredump_info = hci_get_priv(hdev);
+#endif
 	struct rtl_epatch_header *epatch_info;
 	unsigned char *buf;
 	int i, len;
@@ -736,7 +739,9 @@ static int rtlbt_parse_firmware(struct hci_dev *hdev,
 
 	BT_DBG("fw_version=%x, num_patches=%d",
 	       le32_to_cpu(epatch_info->fw_version), num_patches);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	coredump_info->rtl_dump.fw_version = le32_to_cpu(epatch_info->fw_version);
+#endif
 
 	/* After the rtl_epatch_header there is a funky patch metadata section.
 	 * Assuming 2 patches, the layout is:
@@ -933,6 +938,7 @@ out:
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btrtl_coredump(struct hci_dev *hdev)
 {
 	static const u8 param[] = { 0x00, 0x00 };
@@ -976,6 +982,7 @@ void btrtl_set_driver_name(struct hci_dev *hdev, const char *driver_name)
 	coredump_info->rtl_dump.driver_name = driver_name;
 }
 EXPORT_SYMBOL_GPL(btrtl_set_driver_name);
+#endif
 
 static bool rtl_has_chip_type(u16 lmp_subver)
 {
@@ -1038,7 +1045,9 @@ EXPORT_SYMBOL_GPL(btrtl_free);
 struct btrtl_device_info *btrtl_initialize(struct hci_dev *hdev,
 					   const char *postfix)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btrealtek_data *coredump_info = hci_get_priv(hdev);
+#endif
 	struct btrtl_device_info *btrtl_dev;
 	struct sk_buff *skb;
 	struct hci_rp_read_local_version *resp;
@@ -1205,8 +1214,10 @@ next:
 	if (btrtl_dev->ic_info->has_msft_ext)
 		hci_set_msft_opcode(hdev, 0xFCF0);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	if (btrtl_dev->ic_info)
 		coredump_info->rtl_dump.controller = btrtl_dev->ic_info->hw_info;
+#endif
 
 	return btrtl_dev;
 
@@ -1253,7 +1264,9 @@ int btrtl_download_firmware(struct hci_dev *hdev,
 	}
 
 done:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	btrtl_register_devcoredump_support(hdev);
+#endif
 
 	return err;
 }

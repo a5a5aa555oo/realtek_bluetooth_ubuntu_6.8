@@ -971,6 +971,7 @@ static void btusb_intel_cmd_timeout(struct hci_dev *hdev)
 	gpiod_set_value_cansleep(reset_gpio, 0);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define RTK_DEVCOREDUMP_CODE_MEMDUMP		0x01
 #define RTK_DEVCOREDUMP_CODE_HW_ERR		0x02
 #define RTK_DEVCOREDUMP_CODE_CMD_TIMEOUT	0x03
@@ -1004,16 +1005,19 @@ static inline void btusb_rtl_alloc_devcoredump(struct hci_dev *hdev,
 		kfree_skb(skb);
 	}
 }
+#endif
 
 static void btusb_rtl_cmd_timeout(struct hci_dev *hdev)
 {
 	struct btusb_data *data = hci_get_drvdata(hdev);
 	struct gpio_desc *reset_gpio = data->reset_gpio;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct rtk_dev_coredump_hdr hdr = {
 		.type = RTK_DEVCOREDUMP_CODE_CMD_TIMEOUT,
 	};
 
 	btusb_rtl_alloc_devcoredump(hdev, &hdr, NULL, 0);
+#endif
 
 	if (++data->cmd_timeout_cnt < 5)
 		return;
@@ -1040,6 +1044,7 @@ static void btusb_rtl_cmd_timeout(struct hci_dev *hdev)
 	gpiod_set_value_cansleep(reset_gpio, 0);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btusb_rtl_hw_error(struct hci_dev *hdev, u8 code)
 {
 	struct rtk_dev_coredump_hdr hdr = {
@@ -1051,6 +1056,7 @@ static void btusb_rtl_hw_error(struct hci_dev *hdev, u8 code)
 
 	btusb_rtl_alloc_devcoredump(hdev, &hdr, NULL, 0);
 }
+#endif
 
 static void btusb_qca_cmd_timeout(struct hci_dev *hdev)
 {
@@ -2632,6 +2638,7 @@ static int btusb_setup_realtek(struct hci_dev *hdev)
 	return ret;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int btusb_recv_event_realtek(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	if (skb->data[0] == HCI_VENDOR_PKT && skb->data[2] == RTK_SUB_EVENT_CODE_COREDUMP) {
@@ -2650,6 +2657,7 @@ static int btusb_recv_event_realtek(struct hci_dev *hdev, struct sk_buff *skb)
 
 	return hci_recv_frame(hdev, skb);
 }
+#endif
 
 /* UHW CR mapping */
 #define MTK_BT_MISC		0x70002510
@@ -4351,7 +4359,9 @@ static int btusb_probe(struct usb_interface *intf,
 		/* Allocate extra space for Realtek device */
 		priv_size += sizeof(struct btrealtek_data);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		data->recv_event = btusb_recv_event_realtek;
+#endif
 	} else if (id->driver_info & BTUSB_MEDIATEK) {
 		/* Allocate extra space for Mediatek device */
 		priv_size += sizeof(struct btmediatek_data);
@@ -4518,11 +4528,15 @@ static int btusb_probe(struct usb_interface *intf,
 
 	if (IS_ENABLED(CONFIG_BT_HCIBTUSB_RTL) &&
 	    (id->driver_info & BTUSB_REALTEK)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		btrtl_set_driver_name(hdev, btusb_driver.name);
+#endif
 		hdev->setup = btusb_setup_realtek;
 		hdev->shutdown = btrtl_shutdown_realtek;
 		hdev->cmd_timeout = btusb_rtl_cmd_timeout;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		hdev->hw_error = btusb_rtl_hw_error;
+#endif
 
 		/* Realtek devices need to set remote wakeup on auto-suspend */
 		set_bit(BTUSB_WAKEUP_AUTOSUSPEND, &data->flags);
