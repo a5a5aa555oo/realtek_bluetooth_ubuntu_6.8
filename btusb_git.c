@@ -3159,9 +3159,11 @@ static int btusb_mtk_setup(struct hci_dev *hdev)
 	mediatek->dev_id = dev_id;
 	mediatek->reset_sync = btusb_mtk_reset;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	err = btmtk_register_coredump(hdev, btusb_driver.name, fw_version);
 	if (err < 0)
 		bt_dev_err(hdev, "Failed to register coredump (%d)", err);
+#endif
 
 	switch (dev_id) {
 	case 0x7663:
@@ -3335,12 +3337,14 @@ static int btusb_recv_acl_mtk(struct hci_dev *hdev, struct sk_buff *skb)
 		 * for backward compatibility, so we have to clone the packet
 		 * extraly for the in-kernel coredump support.
 		 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		if (IS_ENABLED(CONFIG_DEV_COREDUMP)) {
 			struct sk_buff *skb_cd = skb_clone(skb, GFP_ATOMIC);
 
 			if (skb_cd)
 				btmtk_process_coredump(hdev, skb_cd);
 		}
+#endif
 
 		fallthrough;
 	case 0x05ff:		/* Firmware debug logging 1 */

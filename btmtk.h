@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: ISC */
 /* Copyright (C) 2021 MediaTek Inc. */
 
+#include <linux/version.h>
+
 #define FIRMWARE_MT7622		"mediatek/mt7622pr2h.bin"
 #define FIRMWARE_MT7663		"mediatek/mt7663pr2h.bin"
 #define FIRMWARE_MT7668		"mediatek/mt7668pr2h.bin"
@@ -23,10 +25,12 @@
 #define MT7921_DLSTATUS 0x7c053c10
 #define BT_DL_STATE BIT(1)
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define MTK_COREDUMP_SIZE		(1024 * 1000)
 #define MTK_COREDUMP_END		"coredump end"
 #define MTK_COREDUMP_END_LEN		(sizeof(MTK_COREDUMP_END))
 #define MTK_COREDUMP_NUM		255
+#endif
 
 enum {
 	BTMTK_WMT_PATCH_DWNLD = 0x1,
@@ -128,17 +132,21 @@ struct btmtk_hci_wmt_params {
 
 typedef int (*btmtk_reset_sync_func_t)(struct hci_dev *, void *);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 struct btmtk_coredump_info {
 	const char *driver_name;
 	u32 fw_version;
 	u16 cnt;
 	int state;
 };
+#endif
 
 struct btmediatek_data {
 	u32 dev_id;
 	btmtk_reset_sync_func_t reset_sync;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btmtk_coredump_info cd_info;
+#endif
 };
 
 typedef int (*wmt_cmd_sync_func_t)(struct hci_dev *,
@@ -156,10 +164,12 @@ int btmtk_setup_firmware(struct hci_dev *hdev, const char *fwname,
 
 void btmtk_reset_sync(struct hci_dev *hdev);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 int btmtk_register_coredump(struct hci_dev *hdev, const char *name,
 			    u32 fw_version);
 
 int btmtk_process_coredump(struct hci_dev *hdev, struct sk_buff *skb);
+#endif
 #else
 
 static inline int btmtk_set_bdaddr(struct hci_dev *hdev,
@@ -184,6 +194,7 @@ static void btmtk_reset_sync(struct hci_dev *hdev)
 {
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int btmtk_register_coredump(struct hci_dev *hdev, const char *name,
 				   u32 fw_version)
 {
@@ -194,4 +205,5 @@ static int btmtk_process_coredump(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	return -EOPNOTSUPP;
 }
+#endif
 #endif

@@ -2,6 +2,7 @@
 /* Copyright (C) 2021 MediaTek Inc.
  *
  */
+
 #include <linux/module.h>
 #include <linux/firmware.h>
 
@@ -53,6 +54,7 @@ struct btmtk_section_map {
 	};
 } __packed;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btmtk_coredump(struct hci_dev *hdev)
 {
 	int err;
@@ -102,6 +104,7 @@ static void btmtk_coredump_notify(struct hci_dev *hdev, int state)
 		break;
 	}
 }
+#endif
 
 int btmtk_setup_firmware_79xx(struct hci_dev *hdev, const char *fwname,
 			      wmt_cmd_sync_func_t wmt_cmd_sync)
@@ -350,6 +353,7 @@ void btmtk_reset_sync(struct hci_dev *hdev)
 }
 EXPORT_SYMBOL_GPL(btmtk_reset_sync);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 int btmtk_register_coredump(struct hci_dev *hdev, const char *name,
 			    u32 fw_version)
 {
@@ -416,6 +420,7 @@ int btmtk_process_coredump(struct hci_dev *hdev, struct sk_buff *skb)
 	return err;
 }
 EXPORT_SYMBOL_GPL(btmtk_process_coredump);
+#endif
 
 MODULE_AUTHOR("Sean Wang <sean.wang@mediatek.com>");
 MODULE_AUTHOR("Mark Chen <mark-yw.chen@mediatek.com>");
