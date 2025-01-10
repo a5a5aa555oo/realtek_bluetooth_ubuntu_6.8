@@ -6,6 +6,8 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
+#include <linux/version.h>
+
 /* List of tlv type */
 enum {
 	INTEL_TLV_CNVI_TOP = 0x10,
@@ -142,12 +144,14 @@ struct hci_ppag_enable_cmd {
 	__le32	ppag_enable_flags;
 } __packed;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define INTEL_TLV_TYPE_ID		0x01
 
 #define INTEL_TLV_SYSTEM_EXCEPTION	0x00
 #define INTEL_TLV_FATAL_EXCEPTION	0x01
 #define INTEL_TLV_DEBUG_EXCEPTION	0x02
 #define INTEL_TLV_TEST_EXCEPTION	0xDE
+#endif
 
 #define INTEL_HW_PLATFORM(cnvx_bt)	((u8)(((cnvx_bt) & 0x0000ff00) >> 8))
 #define INTEL_HW_VARIANT(cnvx_bt)	((u8)(((cnvx_bt) & 0x003f0000) >> 16))
@@ -220,7 +224,11 @@ int btintel_read_boot_params(struct hci_dev *hdev,
 			     struct intel_boot_params *params);
 int btintel_download_firmware(struct hci_dev *dev, struct intel_version *ver,
 			      const struct firmware *fw, u32 *boot_param);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 int btintel_configure_setup(struct hci_dev *hdev, const char *driver_name);
+#else
+int btintel_configure_setup(struct hci_dev *hdev);
+#endif
 int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb);
 void btintel_bootup(struct hci_dev *hdev, const void *ptr, unsigned int len);
 void btintel_secure_send_result(struct hci_dev *hdev,
@@ -302,8 +310,12 @@ static inline int btintel_download_firmware(struct hci_dev *dev,
 	return -EOPNOTSUPP;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static inline int btintel_configure_setup(struct hci_dev *hdev,
 					  const char *driver_name)
+#else
+static inline int btintel_configure_setup(struct hci_dev *hdev)
+#endif
 {
 	return -ENODEV;
 }

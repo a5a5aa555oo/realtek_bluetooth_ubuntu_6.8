@@ -40,11 +40,13 @@ struct cmd_write_boot_params {
 	u8  fw_build_yy;
 } __packed;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static struct {
 	const char *driver_name;
 	u8         hw_variant;
 	u32        fw_build_num;
 } coredump_info;
+#endif
 
 static const guid_t btintel_guid_dsm =
 	GUID_INIT(0xaa10f4e0, 0x81ac, 0x4233,
@@ -322,8 +324,10 @@ int btintel_version_info(struct hci_dev *hdev, struct intel_version *ver)
 		return -EINVAL;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	coredump_info.hw_variant = ver->hw_variant;
 	coredump_info.fw_build_num = ver->fw_build_num;
+#endif
 
 	bt_dev_info(hdev, "%s revision %u.%u build %u week %u %u",
 		    variant, ver->fw_revision >> 4, ver->fw_revision & 0x0f,
@@ -520,8 +524,10 @@ static int btintel_version_info_tlv(struct hci_dev *hdev,
 		return -EINVAL;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	coredump_info.hw_variant = INTEL_HW_VARIANT(version->cnvi_bt);
 	coredump_info.fw_build_num = version->build_num;
+#endif
 
 	bt_dev_info(hdev, "%s timestamp %u.%u buildtype %u build %u", variant,
 		    2000 + (version->timestamp >> 8), version->timestamp & 0xff,
@@ -1417,6 +1423,7 @@ int btintel_set_quality_report(struct hci_dev *hdev, bool enable)
 }
 EXPORT_SYMBOL_GPL(btintel_set_quality_report);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btintel_coredump(struct hci_dev *hdev)
 {
 	struct sk_buff *skb;
@@ -1469,6 +1476,7 @@ static int btintel_register_devcoredump_support(struct hci_dev *hdev)
 
 	return err;
 }
+#endif
 
 static const struct firmware *btintel_legacy_rom_get_fw(struct hci_dev *hdev,
 					       struct intel_version *ver)
@@ -2746,7 +2754,9 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 			btintel_set_msft_opcode(hdev, ver.hw_variant);
 
 			err = btintel_bootloader_setup(hdev, &ver);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 			btintel_register_devcoredump_support(hdev);
+#endif
 			break;
 		default:
 			bt_dev_err(hdev, "Unsupported Intel hw variant (%u)",
@@ -2825,7 +2835,9 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 		btintel_set_msft_opcode(hdev, ver.hw_variant);
 
 		err = btintel_bootloader_setup(hdev, &ver);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		btintel_register_devcoredump_support(hdev);
+#endif
 		break;
 	case 0x17:
 	case 0x18:
@@ -2853,7 +2865,9 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 		if (err)
 			goto exit_error;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		btintel_register_devcoredump_support(hdev);
+#endif
 		break;
 	default:
 		bt_dev_err(hdev, "Unsupported Intel hw variant (%u)",
@@ -2903,7 +2917,11 @@ static int btintel_shutdown_combined(struct hci_dev *hdev)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 int btintel_configure_setup(struct hci_dev *hdev, const char *driver_name)
+#else
+int btintel_configure_setup(struct hci_dev *hdev)
+#endif
 {
 	hdev->manufacturer = 2;
 	hdev->setup = btintel_setup_combined;
@@ -2912,12 +2930,15 @@ int btintel_configure_setup(struct hci_dev *hdev, const char *driver_name)
 	hdev->set_diag = btintel_set_diag_combined;
 	hdev->set_bdaddr = btintel_set_bdaddr;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	coredump_info.driver_name = driver_name;
+#endif
 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(btintel_configure_setup);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static int btintel_diagnostics(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct intel_tlv *tlv = (void *)&skb->data[5];
@@ -2946,11 +2967,14 @@ static int btintel_diagnostics(struct hci_dev *hdev, struct sk_buff *skb)
 recv_frame:
 	return hci_recv_frame(hdev, skb);
 }
+#endif
 
 int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct hci_event_hdr *hdr = (void *)skb->data;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	const char diagnostics_hdr[] = { 0x87, 0x80, 0x03 };
+#endif
 
 	if (skb->len > HCI_EVENT_HDR_SIZE && hdr->evt == 0xff &&
 	    hdr->plen > 0) {
@@ -2977,6 +3001,7 @@ int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb)
 			}
 		}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		/* Handle all diagnostics events separately. May still call
 		 * hci_recv_frame.
 		 */
@@ -2985,6 +3010,7 @@ int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb)
 			   sizeof(diagnostics_hdr)) == 0) {
 			return btintel_diagnostics(hdev, skb);
 		}
+#endif
 	}
 
 	return hci_recv_frame(hdev, skb);

@@ -4426,7 +4426,11 @@ static int btusb_probe(struct usb_interface *intf,
 
 	/* Combined Intel Device setup to support multiple setup routine */
 	if (id->driver_info & BTUSB_INTEL_COMBINED) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 		err = btintel_configure_setup(hdev, btusb_driver.name);
+#else
+		err = btintel_configure_setup(hdev);
+#endif
 		if (err)
 			goto out_free_dev;
 
