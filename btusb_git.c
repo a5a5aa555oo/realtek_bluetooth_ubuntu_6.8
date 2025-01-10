@@ -908,6 +908,7 @@ struct btusb_data {
 #endif
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 static void btusb_reset(struct hci_dev *hdev)
 {
 	struct btusb_data *data;
@@ -929,6 +930,7 @@ static void btusb_reset(struct hci_dev *hdev)
 	bt_dev_err(hdev, "Resetting usb device.");
 	usb_queue_reset_device(data->intf);
 }
+#endif
 
 static void btusb_intel_cmd_timeout(struct hci_dev *hdev)
 {
@@ -955,7 +957,11 @@ static void btusb_intel_cmd_timeout(struct hci_dev *hdev)
 	}
 
 	if (!reset_gpio) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 		btusb_reset(hdev);
+#else
+		bt_dev_err(hdev, "No way to reset. Ignoring and continuing");
+#endif
 		return;
 	}
 
@@ -1029,7 +1035,11 @@ static void btusb_rtl_cmd_timeout(struct hci_dev *hdev)
 		return;
 
 	if (!reset_gpio) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 		btusb_reset(hdev);
+#else
+		bt_dev_err(hdev, "No gpio to reset Realtek device, ignoring");
+#endif
 		return;
 	}
 
@@ -1100,7 +1110,17 @@ static void btusb_qca_cmd_timeout(struct hci_dev *hdev)
 		return;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 	btusb_reset(hdev);
+#else
+	bt_dev_err(hdev, "Multiple cmd timeouts seen. Resetting usb device.");
+	/* This is not an unbalanced PM reference since the device will reset */
+	int err = usb_autopm_get_interface(data->intf);
+	if (!err)
+		usb_queue_reset_device(data->intf);
+	else
+		bt_dev_err(hdev, "Failed usb_autopm_get_interface with %d", err);
+#endif
 }
 
 static inline void btusb_free_frags(struct btusb_data *data)
