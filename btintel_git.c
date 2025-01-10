@@ -6,6 +6,7 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
 #include <linux/regmap.h>
@@ -2736,8 +2737,10 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 			set_bit(HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED,
 				&hdev->quirks);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 3)
 			/* These variants don't seem to support LE Coded PHY */
 			set_bit(HCI_QUIRK_BROKEN_LE_CODED, &hdev->quirks);
+#endif
 
 			/* Setup MSFT Extension support */
 			btintel_set_msft_opcode(hdev, ver.hw_variant);
@@ -2810,8 +2813,10 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 		 */
 		set_bit(HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED, &hdev->quirks);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 3)
 		/* These variants don't seem to support LE Coded PHY */
 		set_bit(HCI_QUIRK_BROKEN_LE_CODED, &hdev->quirks);
+#endif
 
 		/* Set Valid LE States quirk */
 		set_bit(HCI_QUIRK_VALID_LE_STATES, &hdev->quirks);
