@@ -2491,7 +2491,9 @@ static int btusb_setup_csr(struct hci_dev *hdev)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 13)
 		set_bit(HCI_QUIRK_BROKEN_ERR_DATA_REPORTING, &hdev->quirks);
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 1)
 		set_bit(HCI_QUIRK_BROKEN_FILTER_CLEAR_ALL, &hdev->quirks);
+#endif
 		set_bit(HCI_QUIRK_NO_SUSPEND_NOTIFIER, &hdev->quirks);
 
 		/* Clear the reset quirk since this is not an actual
