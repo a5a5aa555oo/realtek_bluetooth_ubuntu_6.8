@@ -4057,7 +4057,9 @@ static int btusb_setup_qca(struct hci_dev *hdev)
 	/* Mark HCI_OP_ENHANCED_SETUP_SYNC_CONN as broken as it doesn't seem to
 	 * work with the likes of HSP/HFP mSBC.
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 3)
 	set_bit(HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN, &hdev->quirks);
+#endif
 
 	return 0;
 }
@@ -4506,7 +4508,9 @@ static int btusb_probe(struct usb_interface *intf,
 		hdev->manufacturer = 70;
 		hdev->cmd_timeout = btmtk_reset_sync;
 		hdev->set_bdaddr = btmtk_set_bdaddr;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 3)
 		set_bit(HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN, &hdev->quirks);
+#endif
 		set_bit(HCI_QUIRK_NON_PERSISTENT_SETUP, &hdev->quirks);
 		data->recv_acl = btusb_recv_acl_mtk;
 	}
