@@ -12,6 +12,16 @@
 #define GET_HCIDEV_DEV(hdev) ((hdev)->dev.parent)
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+struct bt_codec {
+	__u8	id;
+	__u16	cid;
+	__u16	vid;
+	__u8	data_path;
+	__u8	num_caps;
+} __packed;
+#endif
+
 /* List of tlv type */
 enum {
 	INTEL_TLV_CNVI_TOP = 0x10,
@@ -237,7 +247,9 @@ int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb);
 void btintel_bootup(struct hci_dev *hdev, const void *ptr, unsigned int len);
 void btintel_secure_send_result(struct hci_dev *hdev,
 				const void *ptr, unsigned int len);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 int btintel_set_quality_report(struct hci_dev *hdev, bool enable);
+#endif
 #else
 
 static inline int btintel_check_bdaddr(struct hci_dev *hdev)
@@ -334,8 +346,10 @@ static inline void btintel_secure_send_result(struct hci_dev *hdev,
 {
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 static inline int btintel_set_quality_report(struct hci_dev *hdev, bool enable)
 {
 	return -ENODEV;
 }
+#endif
 #endif

@@ -1277,6 +1277,7 @@ static void btintel_reset_to_bootloader(struct hci_dev *hdev)
 	msleep(150);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 static int btintel_read_debug_features(struct hci_dev *hdev,
 				       struct intel_debug_features *features)
 {
@@ -1307,6 +1308,7 @@ static int btintel_read_debug_features(struct hci_dev *hdev,
 	kfree_skb(skb);
 	return 0;
 }
+
 
 static int btintel_set_debug_features(struct hci_dev *hdev,
 			       const struct intel_debug_features *features)
@@ -1421,6 +1423,7 @@ int btintel_set_quality_report(struct hci_dev *hdev, bool enable)
 	return err;
 }
 EXPORT_SYMBOL_GPL(btintel_set_quality_report);
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btintel_coredump(struct hci_dev *hdev)
@@ -2102,7 +2105,9 @@ static int btintel_bootloader_setup(struct hci_dev *hdev,
 		btintel_load_ddc_config(hdev, ddcname);
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	hci_dev_clear_flag(hdev, HCI_QUALITY_REPORT);
+#endif
 
 	/* Read the Intel version information after loading the FW  */
 	err = btintel_read_version(hdev, &new_ver);
@@ -2246,6 +2251,7 @@ done:
 	return err;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 static int btintel_get_codec_config_data(struct hci_dev *hdev,
 					 __u8 link, struct bt_codec *codec,
 					 __u8 *ven_len, __u8 **ven_data)
@@ -2301,6 +2307,7 @@ static int btintel_get_data_path_id(struct hci_dev *hdev, __u8 *data_path_id)
 	*data_path_id = 1;
 	return 0;
 }
+#endif
 
 static int btintel_configure_offload(struct hci_dev *hdev)
 {
@@ -2327,10 +2334,12 @@ static int btintel_configure_offload(struct hci_dev *hdev)
 		goto error;
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	if (use_cases->preset[0] & 0x03) {
 		hdev->get_data_path_id = btintel_get_data_path_id;
 		hdev->get_codec_config_data = btintel_get_codec_config_data;
 	}
+#endif
 error:
 	kfree_skb(skb);
 	return err;
@@ -2573,7 +2582,9 @@ static int btintel_bootloader_setup_tlv(struct hci_dev *hdev,
 	/* Read supported use cases and set callbacks to fetch datapath id */
 	btintel_configure_offload(hdev);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	hci_dev_clear_flag(hdev, HCI_QUALITY_REPORT);
+#endif
 
 	/* Set PPAG feature */
 	btintel_set_ppag(hdev, ver);
@@ -2685,8 +2696,10 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 	set_bit(HCI_QUIRK_SIMULTANEOUS_DISCOVERY, &hdev->quirks);
 	set_bit(HCI_QUIRK_NON_PERSISTENT_DIAG, &hdev->quirks);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	/* Set up the quality report callback for Intel devices */
 	hdev->set_quality_report = btintel_set_quality_report;
+#endif
 
 	/* For Legacy device, check the HW platform value and size */
 	if (skb->len == sizeof(ver) && skb->data[1] == 0x37) {
