@@ -340,12 +340,19 @@ EXPORT_SYMBOL_GPL(btmtk_set_bdaddr);
 
 void btmtk_reset_sync(struct hci_dev *hdev)
 {
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 	struct btmediatek_data *reset_work = hci_get_priv(hdev);
+#endif
 	int err;
 
 	hci_dev_lock(hdev);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 	err = hci_cmd_sync_queue(hdev, reset_work->reset_sync, NULL, NULL);
+#else
+	err = -1;
+#endif
 	if (err)
 		bt_dev_err(hdev, "failed to reset (%d)", err);
 

@@ -13,6 +13,7 @@ obj-m	+= btusb_git.o
 
 ccflags-y += -DCONFIG_BT_HCIBTUSB_AUTOSUSPEND -DCONFIG_BT_HCIBTUSB_POLL_SYNC
 ccflags-y += -DCONFIG_BT_RTL -DCONFIG_BT_HCIBTUSB_RTL
+ccflags-y += -DCONFIG_BT_MTK -DCONFIG_BT_HCIBTUSB_MTK
 ccflags-y += -Wno-declaration-after-statement 
 
 else

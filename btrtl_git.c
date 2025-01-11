@@ -1010,7 +1010,16 @@ static int rtl_read_chip_type(struct hci_dev *hdev, u8 *type)
 		return PTR_ERR(skb);
 	}
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 	chip_type = skb_pull_data(skb, sizeof(*chip_type));
+#else
+	if (skb->len < sizeof(*chip_type))
+		chip_type = NULL;
+	else {
+		chip_type = (void *)skb->data;
+		skb_pull(skb, sizeof(*chip_type));
+	}
+#endif
 	if (!chip_type) {
 		rtl_dev_err(hdev, "RTL chip type event length mismatch");
 		kfree_skb(skb);

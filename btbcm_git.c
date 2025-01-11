@@ -465,8 +465,10 @@ static int btbcm_print_controller_features(struct hci_dev *hdev)
 	kfree_skb(skb);
 
 	/* Read DMI and disable broken Read LE Min/Max Tx Power */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 1)
 	if (dmi_first_match(disable_broken_read_transmit_power))
 		set_bit(HCI_QUIRK_BROKEN_READ_TRANSMIT_POWER, &hdev->quirks);
+#endif
 
 	return 0;
 }
