@@ -33,6 +33,10 @@ install:
 	@install -Dvm 644 -t $(MODDIR) *.ko
 	@install -Dvm 644 -t /etc/modprobe.d blacklist-btusb.conf
 	depmod -a $(KVER)
+
+install_fw:
+	rm -rf /lib/firmware/rtl_bt
+	@install -Dvm 644 -t /lib/firmware/rtl_bt firmware/*.bin
 	
 uninstall:
 	@rm -rvf $(MODDIR)
