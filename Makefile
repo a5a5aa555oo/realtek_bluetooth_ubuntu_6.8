@@ -21,6 +21,7 @@ else
 KVER ?= `uname -r`
 KDIR ?= /lib/modules/$(KVER)/build
 MODDIR ?= /lib/modules/$(KVER)/extra/bluetooth
+FWDIR := /lib/firmware/rtl_bt
 
 modules:
 	$(MAKE) -j`nproc` -C $(KDIR) M=$$PWD modules
@@ -35,8 +36,8 @@ install:
 	depmod -a $(KVER)
 
 install_fw:
-	rm -rf /lib/firmware/rtl_bt
-	@install -Dvm 644 -t /lib/firmware/rtl_bt firmware/*.bin
+	rm -rf $(FWDIR)
+	@cp -Pvr firmware $(FWDIR)
 	
 uninstall:
 	@rm -rvf $(MODDIR)
