@@ -6,14 +6,19 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/firmware.h>
 #include <linux/regmap.h>
 #include <linux/string_choices.h>
 #include <linux/acpi.h>
 #include <acpi/acpi_bus.h>
-#include <linux/unaligned.h>
 #include <linux/efi.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+#include <asm/unaligned.h>
+#else
+#include <linux/unaligned.h>
+#endif
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
