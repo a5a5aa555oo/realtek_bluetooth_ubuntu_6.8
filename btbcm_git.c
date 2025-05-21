@@ -11,7 +11,8 @@
 #include <linux/firmware.h>
 #include <linux/dmi.h>
 #include <linux/of.h>
-#include <asm/unaligned.h>
+#include <linux/string.h>
+#include <linux/unaligned.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
@@ -465,10 +466,8 @@ static int btbcm_print_controller_features(struct hci_dev *hdev)
 	kfree_skb(skb);
 
 	/* Read DMI and disable broken Read LE Min/Max Tx Power */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 1)
 	if (dmi_first_match(disable_broken_read_transmit_power))
 		set_bit(HCI_QUIRK_BROKEN_READ_TRANSMIT_POWER, &hdev->quirks);
-#endif
 
 	return 0;
 }
@@ -542,13 +541,10 @@ static const struct bcm_subver_table bcm_usb_subver_table[] = {
 static const char *btbcm_get_board_name(struct device *dev)
 {
 #ifdef CONFIG_OF
-	struct device_node *root;
+	struct device_node *root __free(device_node) = of_find_node_by_path("/");
 	char *board_type;
 	const char *tmp;
-	int len;
-	int i;
 
-	root = of_find_node_by_path("/");
 	if (!root)
 		return NULL;
 
@@ -556,14 +552,11 @@ static const char *btbcm_get_board_name(struct device *dev)
 		return NULL;
 
 	/* get rid of any '/' in the compatible string */
-	len = strlen(tmp) + 1;
-	board_type = devm_kzalloc(dev, len, GFP_KERNEL);
-	strscpy(board_type, tmp, len);
-	for (i = 0; i < len; i++) {
-		if (board_type[i] == '/')
-			board_type[i] = '-';
-	}
-	of_node_put(root);
+	board_type = devm_kstrdup(dev, tmp, GFP_KERNEL);
+	if (!board_type)
+		return NULL;
+
+	strreplace(board_type, '/', '-');
 
 	return board_type;
 #else

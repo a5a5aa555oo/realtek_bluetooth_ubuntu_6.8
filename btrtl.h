@@ -5,8 +5,6 @@
  *  Copyright (C) 2015 Endless Mobile, Inc.
  */
 
-#include <linux/version.h>
-
 #define RTL_FRAG_LEN 252
 
 #define rtl_dev_err(dev, fmt, ...) bt_dev_err(dev, "RTL: " fmt, ##__VA_ARGS__)
@@ -111,20 +109,16 @@ enum {
 	__REALTEK_NUM_FLAGS,
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 struct rtl_dump_info {
 	const char *driver_name;
 	char *controller;
 	u32  fw_version;
 };
-#endif
 
 struct btrealtek_data {
 	DECLARE_BITMAP(flags, __REALTEK_NUM_FLAGS);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct rtl_dump_info rtl_dump;
-#endif
 };
 
 #define btrealtek_set_flag(hdev, nr)					\
@@ -153,9 +147,7 @@ int btrtl_get_uart_settings(struct hci_dev *hdev,
 			    struct btrtl_device_info *btrtl_dev,
 			    unsigned int *controller_baudrate,
 			    u32 *device_baudrate, bool *flow_control);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 void btrtl_set_driver_name(struct hci_dev *hdev, const char *driver_name);
-#endif
 
 #else
 
@@ -199,9 +191,8 @@ static inline int btrtl_get_uart_settings(struct hci_dev *hdev,
 	return -ENOENT;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static inline void btrtl_set_driver_name(struct hci_dev *hdev, const char *driver_name)
 {
 }
-#endif
+
 #endif

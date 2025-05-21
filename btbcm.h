@@ -6,8 +6,6 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
-#include <linux/version.h>
-
 #define BCM_UART_CLOCK_48MHZ	0x01
 #define BCM_UART_CLOCK_24MHZ	0x02
 

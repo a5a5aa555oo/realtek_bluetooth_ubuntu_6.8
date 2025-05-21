@@ -7,7 +7,7 @@
 
 #include <linux/module.h>
 #include <linux/firmware.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 #include <linux/usb.h>
 
 #include <net/bluetooth/bluetooth.h>
@@ -30,11 +30,10 @@
 #define RTL_ROM_LMP_8822B	0x8822
 #define RTL_ROM_LMP_8852A	0x8852
 #define RTL_ROM_LMP_8851B	0x8851
+#define RTL_ROM_LMP_8922A	0x8922
 #define RTL_CONFIG_MAGIC	0x8723ab55
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define RTL_VSC_OP_COREDUMP	0xfcff
-#endif
 
 #define IC_MATCH_FL_LMPSUBV	(1 << 0)
 #define IC_MATCH_FL_HCIREV	(1 << 1)
@@ -71,6 +70,8 @@ enum btrtl_chip_id {
 	CHIP_ID_8852B = 20,
 	CHIP_ID_8852C = 25,
 	CHIP_ID_8851B = 36,
+	CHIP_ID_8922A = 44,
+	CHIP_ID_8852BT = 47,
 };
 
 struct id_table {
@@ -309,6 +310,24 @@ static const struct id_table ic_id_table[] = {
 	  .fw_name  = "rtl_bt/rtl8851bu_fw",
 	  .cfg_name = "rtl_bt/rtl8851bu_config",
 	  .hw_info  = "rtl8851bu" },
+
+	/* 8922A */
+	{ IC_INFO(RTL_ROM_LMP_8922A, 0xa, 0xc, HCI_USB),
+	  .config_needed = false,
+	  .has_rom_version = true,
+	  .has_msft_ext = true,
+	  .fw_name  = "rtl_bt/rtl8922au_fw",
+	  .cfg_name = "rtl_bt/rtl8922au_config",
+	  .hw_info  = "rtl8922au" },
+
+	/* 8852BT/8852BE-VT */
+	{ IC_INFO(RTL_ROM_LMP_8852A, 0x87, 0xc, HCI_USB),
+	  .config_needed = false,
+	  .has_rom_version = true,
+	  .has_msft_ext = true,
+	  .fw_name  = "rtl_bt/rtl8852btu_fw",
+	  .cfg_name = "rtl_bt/rtl8852btu_config",
+	  .hw_info  = "rtl8852btu" },
 	};
 
 static const struct id_table *btrtl_match_ic(u16 lmp_subver, u16 hci_rev,
@@ -618,9 +637,7 @@ static int rtlbt_parse_firmware(struct hci_dev *hdev,
 				unsigned char **_buf)
 {
 	static const u8 extension_sig[] = { 0x51, 0x04, 0xfd, 0x77 };
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btrealtek_data *coredump_info = hci_get_priv(hdev);
-#endif
 	struct rtl_epatch_header *epatch_info;
 	unsigned char *buf;
 	int i, len;
@@ -649,6 +666,8 @@ static int rtlbt_parse_firmware(struct hci_dev *hdev,
 		{ RTL_ROM_LMP_8852A, 20 },	/* 8852B */
 		{ RTL_ROM_LMP_8852A, 25 },	/* 8852C */
 		{ RTL_ROM_LMP_8851B, 36 },	/* 8851B */
+		{ RTL_ROM_LMP_8922A, 44 },	/* 8922A */
+		{ RTL_ROM_LMP_8852A, 47 },	/* 8852BT */
 	};
 
 	if (btrtl_dev->fw_len <= 8)
@@ -739,9 +758,7 @@ static int rtlbt_parse_firmware(struct hci_dev *hdev,
 
 	BT_DBG("fw_version=%x, num_patches=%d",
 	       le32_to_cpu(epatch_info->fw_version), num_patches);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	coredump_info->rtl_dump.fw_version = le32_to_cpu(epatch_info->fw_version);
-#endif
 
 	/* After the rtl_epatch_header there is a funky patch metadata section.
 	 * Assuming 2 patches, the layout is:
@@ -806,7 +823,7 @@ static int rtl_download_firmware(struct hci_dev *hdev,
 	struct sk_buff *skb;
 	struct hci_rp_read_local_version *rp;
 
-	dl_cmd = kmalloc(sizeof(struct rtl_download_cmd), GFP_KERNEL);
+	dl_cmd = kmalloc(sizeof(*dl_cmd), GFP_KERNEL);
 	if (!dl_cmd)
 		return -ENOMEM;
 
@@ -873,10 +890,8 @@ static int rtl_load_file(struct hci_dev *hdev, const char *name, u8 **buff)
 	if (ret < 0)
 		return ret;
 	ret = fw->size;
-	*buff = kvmalloc(fw->size, GFP_KERNEL);
-	if (*buff)
-		memcpy(*buff, fw->data, ret);
-	else
+	*buff = kvmemdup(fw->data, fw->size, GFP_KERNEL);
+	if (!*buff)
 		ret = -ENOMEM;
 
 	release_firmware(fw);
@@ -938,7 +953,6 @@ out:
 	return ret;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static void btrtl_coredump(struct hci_dev *hdev)
 {
 	static const u8 param[] = { 0x00, 0x00 };
@@ -982,7 +996,6 @@ void btrtl_set_driver_name(struct hci_dev *hdev, const char *driver_name)
 	coredump_info->rtl_dump.driver_name = driver_name;
 }
 EXPORT_SYMBOL_GPL(btrtl_set_driver_name);
-#endif
 
 static bool rtl_has_chip_type(u16 lmp_subver)
 {
@@ -1010,16 +1023,7 @@ static int rtl_read_chip_type(struct hci_dev *hdev, u8 *type)
 		return PTR_ERR(skb);
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
 	chip_type = skb_pull_data(skb, sizeof(*chip_type));
-#else
-	if (skb->len < sizeof(*chip_type))
-		chip_type = NULL;
-	else {
-		chip_type = (void *)skb->data;
-		skb_pull(skb, sizeof(*chip_type));
-	}
-#endif
 	if (!chip_type) {
 		rtl_dev_err(hdev, "RTL chip type event length mismatch");
 		kfree_skb(skb);
@@ -1054,9 +1058,7 @@ EXPORT_SYMBOL_GPL(btrtl_free);
 struct btrtl_device_info *btrtl_initialize(struct hci_dev *hdev,
 					   const char *postfix)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	struct btrealtek_data *coredump_info = hci_get_priv(hdev);
-#endif
 	struct btrtl_device_info *btrtl_dev;
 	struct sk_buff *skb;
 	struct hci_rp_read_local_version *resp;
@@ -1213,6 +1215,8 @@ next:
 			rtl_dev_err(hdev, "mandatory config file %s not found",
 				    btrtl_dev->ic_info->cfg_name);
 			ret = btrtl_dev->cfg_len;
+			if (!ret)
+				ret = -EINVAL;
 			goto err_free;
 		}
 	}
@@ -1223,10 +1227,8 @@ next:
 	if (btrtl_dev->ic_info->has_msft_ext)
 		hci_set_msft_opcode(hdev, 0xFCF0);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	if (btrtl_dev->ic_info)
 		coredump_info->rtl_dump.controller = btrtl_dev->ic_info->hw_info;
-#endif
 
 	return btrtl_dev;
 
@@ -1265,6 +1267,7 @@ int btrtl_download_firmware(struct hci_dev *hdev,
 	case RTL_ROM_LMP_8852A:
 	case RTL_ROM_LMP_8703B:
 	case RTL_ROM_LMP_8851B:
+	case RTL_ROM_LMP_8922A:
 		err = btrtl_setup_rtl8723b(hdev, btrtl_dev);
 		break;
 	default:
@@ -1273,9 +1276,7 @@ int btrtl_download_firmware(struct hci_dev *hdev,
 	}
 
 done:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 	btrtl_register_devcoredump_support(hdev);
-#endif
 
 	return err;
 }
@@ -1298,7 +1299,8 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	case CHIP_ID_8852B:
 	case CHIP_ID_8852C:
 	case CHIP_ID_8851B:
-		set_bit(HCI_QUIRK_VALID_LE_STATES, &hdev->quirks);
+	case CHIP_ID_8922A:
+	case CHIP_ID_8852BT:
 		set_bit(HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED, &hdev->quirks);
 
 		/* RTL8852C needs to transmit mSBC data continuously without
@@ -1307,12 +1309,10 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 		if (btrtl_dev->project_id == CHIP_ID_8852C)
 			btrealtek_set_flag(hdev, REALTEK_ALT6_CONTINUOUS_TX_CHIP);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 5, 3)
 		if (btrtl_dev->project_id == CHIP_ID_8852A ||
 		    btrtl_dev->project_id == CHIP_ID_8852B ||
 		    btrtl_dev->project_id == CHIP_ID_8852C)
 			set_bit(HCI_QUIRK_USE_MSFT_EXT_ADDRESS_FILTER, &hdev->quirks);
-#endif
 
 		hci_set_aosp_capable(hdev);
 		break;
@@ -1325,7 +1325,6 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	if (!btrtl_dev->ic_info)
 		return;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 4)
 	switch (btrtl_dev->ic_info->lmp_subver) {
 	case RTL_ROM_LMP_8703B:
 		/* 8723CS reports two pages for local ext features,
@@ -1338,7 +1337,6 @@ void btrtl_set_quirks(struct hci_dev *hdev, struct btrtl_device_info *btrtl_dev)
 	default:
 		break;
 	}
-#endif
 }
 EXPORT_SYMBOL_GPL(btrtl_set_quirks);
 
@@ -1355,6 +1353,15 @@ int btrtl_setup_realtek(struct hci_dev *hdev)
 
 	btrtl_set_quirks(hdev, btrtl_dev);
 
+	if (btrtl_dev->ic_info) {
+		hci_set_hw_info(hdev,
+			"RTL lmp_subver=%u hci_rev=%u hci_ver=%u hci_bus=%u",
+			btrtl_dev->ic_info->lmp_subver,
+			btrtl_dev->ic_info->hci_rev,
+			btrtl_dev->ic_info->hci_ver,
+			btrtl_dev->ic_info->hci_bus);
+	}
+
 	btrtl_free(btrtl_dev);
 	return ret;
 }
@@ -1368,7 +1375,7 @@ int btrtl_shutdown_realtek(struct hci_dev *hdev)
 	/* According to the vendor driver, BT must be reset on close to avoid
 	 * firmware crash.
 	 */
-	skb = __hci_cmd_sync(hdev, HCI_OP_RESET, 0, NULL, HCI_INIT_TIMEOUT);
+	skb = __hci_cmd_sync(hdev, HCI_OP_RESET, 0, NULL, HCI_CMD_TIMEOUT);
 	if (IS_ERR(skb)) {
 		ret = PTR_ERR(skb);
 		bt_dev_err(hdev, "HCI reset during shutdown failed");
@@ -1533,6 +1540,10 @@ MODULE_FIRMWARE("rtl_bt/rtl8852bs_fw.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852bs_config.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852bu_fw.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852bu_config.bin");
+MODULE_FIRMWARE("rtl_bt/rtl8852btu_fw.bin");
+MODULE_FIRMWARE("rtl_bt/rtl8852btu_config.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852cu_fw.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852cu_fw_v2.bin");
 MODULE_FIRMWARE("rtl_bt/rtl8852cu_config.bin");
+MODULE_FIRMWARE("rtl_bt/rtl8922au_fw.bin");
+MODULE_FIRMWARE("rtl_bt/rtl8922au_config.bin");

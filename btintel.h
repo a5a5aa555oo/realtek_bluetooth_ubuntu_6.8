@@ -6,22 +6,6 @@
  *  Copyright (C) 2015  Intel Corporation
  */
 
-#include <linux/version.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-#define GET_HCIDEV_DEV(hdev) ((hdev)->dev.parent)
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-struct bt_codec {
-	__u8	id;
-	__u16	cid;
-	__u16	vid;
-	__u8	data_path;
-	__u8	num_caps;
-} __packed;
-#endif
-
 /* List of tlv type */
 enum {
 	INTEL_TLV_CNVI_TOP = 0x10,
@@ -57,7 +41,9 @@ enum {
 	INTEL_TLV_LIMITED_CCE,
 	INTEL_TLV_SBE_TYPE,
 	INTEL_TLV_OTP_BDADDR,
-	INTEL_TLV_UNLOCKED_STATE
+	INTEL_TLV_UNLOCKED_STATE,
+	INTEL_TLV_GIT_SHA1,
+	INTEL_TLV_FW_ID = 0x50
 };
 
 struct intel_tlv {
@@ -65,6 +51,21 @@ struct intel_tlv {
 	u8 len;
 	u8 val[];
 } __packed;
+
+#define BTINTEL_CNVI_BLAZARI		0x900
+#define BTINTEL_CNVI_BLAZARIW		0x901
+#define BTINTEL_CNVI_GAP		0x910
+#define BTINTEL_CNVI_BLAZARU		0x930
+#define BTINTEL_CNVI_SCP		0xA00
+
+/* CNVR */
+#define BTINTEL_CNVR_FMP2		0x910
+
+#define BTINTEL_IMG_BOOTLOADER		0x01	/* Bootloader image */
+#define BTINTEL_IMG_IML			0x02	/* Intermediate image */
+#define BTINTEL_IMG_OP			0x03	/* Operational image */
+
+#define BTINTEL_FWID_MAXLEN 64
 
 struct intel_version_tlv {
 	u32	cnvi_top;
@@ -85,6 +86,8 @@ struct intel_version_tlv {
 	u8	min_fw_build_yy;
 	u8	limited_cce;
 	u8	sbe_type;
+	u32	git_sha1;
+	u8	fw_id[BTINTEL_FWID_MAXLEN];
 	bdaddr_t otp_bd_addr;
 };
 
@@ -158,14 +161,32 @@ struct hci_ppag_enable_cmd {
 	__le32	ppag_enable_flags;
 } __packed;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #define INTEL_TLV_TYPE_ID		0x01
 
 #define INTEL_TLV_SYSTEM_EXCEPTION	0x00
 #define INTEL_TLV_FATAL_EXCEPTION	0x01
 #define INTEL_TLV_DEBUG_EXCEPTION	0x02
 #define INTEL_TLV_TEST_EXCEPTION	0xDE
-#endif
+
+struct btintel_cp_ddc_write {
+	u8	len;
+	__le16	id;
+	u8	data[];
+} __packed;
+
+/* Bluetooth SAR feature (BRDS), Revision 1 */
+struct btintel_sar_inc_pwr {
+	u8	revision;
+	u32	bt_sar_bios; /* Mode of SAR control to be used, 1:enabled in bios */
+	u32	inc_power_mode;  /* Increased power mode */
+	u8	sar_2400_chain_a; /* Sar power restriction LB */
+	u8	br;
+	u8	edr2;
+	u8	edr3;
+	u8	le;
+	u8	le_2mhz;
+	u8	le_lr;
+};
 
 #define INTEL_HW_PLATFORM(cnvx_bt)	((u8)(((cnvx_bt) & 0x0000ff00) >> 8))
 #define INTEL_HW_VARIANT(cnvx_bt)	((u8)(((cnvx_bt) & 0x003f0000) >> 16))
@@ -184,6 +205,7 @@ enum {
 	INTEL_ROM_LEGACY,
 	INTEL_ROM_LEGACY_NO_WBS_SUPPORT,
 	INTEL_ACPI_RESET_ACTIVE,
+	INTEL_WAIT_FOR_D0,
 
 	__INTEL_NUM_FLAGS,
 };
@@ -219,7 +241,7 @@ struct btintel_data {
 #define btintel_wait_on_flag_timeout(hdev, nr, m, to)			\
 		wait_on_bit_timeout(btintel_get_flag(hdev), (nr), m, to)
 
-#if IS_ENABLED(CONFIG_BT_INTEL)
+#if IS_ENABLED(CONFIG_BT_INTEL) || IS_ENABLED(CONFIG_BT_INTEL_PCIE)
 
 int btintel_check_bdaddr(struct hci_dev *hdev);
 int btintel_enter_mfg(struct hci_dev *hdev);
@@ -238,18 +260,24 @@ int btintel_read_boot_params(struct hci_dev *hdev,
 			     struct intel_boot_params *params);
 int btintel_download_firmware(struct hci_dev *dev, struct intel_version *ver,
 			      const struct firmware *fw, u32 *boot_param);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 int btintel_configure_setup(struct hci_dev *hdev, const char *driver_name);
-#else
-int btintel_configure_setup(struct hci_dev *hdev);
-#endif
 int btintel_recv_event(struct hci_dev *hdev, struct sk_buff *skb);
 void btintel_bootup(struct hci_dev *hdev, const void *ptr, unsigned int len);
 void btintel_secure_send_result(struct hci_dev *hdev,
 				const void *ptr, unsigned int len);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 int btintel_set_quality_report(struct hci_dev *hdev, bool enable);
-#endif
+int btintel_version_info_tlv(struct hci_dev *hdev,
+			     struct intel_version_tlv *version);
+int btintel_parse_version_tlv(struct hci_dev *hdev,
+			      struct intel_version_tlv *version,
+			      struct sk_buff *skb);
+void btintel_set_msft_opcode(struct hci_dev *hdev, u8 hw_variant);
+int btintel_bootloader_setup_tlv(struct hci_dev *hdev,
+				 struct intel_version_tlv *ver);
+int btintel_shutdown_combined(struct hci_dev *hdev);
+void btintel_hw_error(struct hci_dev *hdev, u8 code);
+void btintel_print_fseq_info(struct hci_dev *hdev);
+int btintel_diagnostics(struct hci_dev *hdev, struct sk_buff *skb);
 #else
 
 static inline int btintel_check_bdaddr(struct hci_dev *hdev)
@@ -326,12 +354,8 @@ static inline int btintel_download_firmware(struct hci_dev *dev,
 	return -EOPNOTSUPP;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 static inline int btintel_configure_setup(struct hci_dev *hdev,
 					  const char *driver_name)
-#else
-static inline int btintel_configure_setup(struct hci_dev *hdev)
-#endif
 {
 	return -ENODEV;
 }
@@ -346,10 +370,50 @@ static inline void btintel_secure_send_result(struct hci_dev *hdev,
 {
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 static inline int btintel_set_quality_report(struct hci_dev *hdev, bool enable)
 {
 	return -ENODEV;
 }
-#endif
+
+static inline int btintel_version_info_tlv(struct hci_dev *hdev,
+					   struct intel_version_tlv *version)
+{
+	return -EOPNOTSUPP;
+}
+
+static inline int btintel_parse_version_tlv(struct hci_dev *hdev,
+					    struct intel_version_tlv *version,
+					    struct sk_buff *skb)
+{
+	return -EOPNOTSUPP;
+}
+
+static inline void btintel_set_msft_opcode(struct hci_dev *hdev, u8 hw_variant)
+
+{
+}
+
+static inline int btintel_bootloader_setup_tlv(struct hci_dev *hdev,
+					       struct intel_version_tlv *ver)
+{
+	return -ENODEV;
+}
+
+static inline int btintel_shutdown_combined(struct hci_dev *hdev)
+{
+	return -ENODEV;
+}
+
+static inline void btintel_hw_error(struct hci_dev *hdev, u8 code)
+{
+}
+
+static inline void btintel_print_fseq_info(struct hci_dev *hdev)
+{
+}
+
+static inline int btintel_diagnostics(struct hci_dev *hdev, struct sk_buff *skb)
+{
+	return -EOPNOTSUPP;
+}
 #endif
