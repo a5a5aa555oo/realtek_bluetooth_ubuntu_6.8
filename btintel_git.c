@@ -2667,24 +2667,6 @@ static void btintel_set_dsm_reset_method(struct hci_dev *hdev,
 	data->acpi_reset_method = btintel_acpi_reset_method;
 }
 
-#define BTINTEL_ISODATA_HANDLE_BASE 0x900
-
-static u8 btintel_classify_pkt_type(struct hci_dev *hdev, struct sk_buff *skb)
-{
-	/*
-	 * Distinguish ISO data packets form ACL data packets
-	 * based on their connection handle value range.
-	 */
-	if (hci_skb_pkt_type(skb) == HCI_ACLDATA_PKT) {
-		__u16 handle = __le16_to_cpu(hci_acl_hdr(skb)->handle);
-
-		if (hci_handle(handle) >= BTINTEL_ISODATA_HANDLE_BASE)
-			return HCI_ISODATA_PKT;
-	}
-
-	return hci_skb_pkt_type(skb);
-}
-
 /*
  * UefiCnvCommonDSBR UEFI variable provides information from the OEM platforms
  * if they have replaced the BRI (Bluetooth Radio Interface) resistor to
@@ -3595,9 +3577,6 @@ static int btintel_setup_combined(struct hci_dev *hdev)
 		break;
 	case 0x18: /* GfP2 */
 	case 0x1c: /* GaP */
-		/* Re-classify packet type for controllers with LE audio */
-		hdev->classify_pkt_type = btintel_classify_pkt_type;
-		fallthrough;
 	case 0x17:
 	case 0x19:
 	case 0x1b:
